@@ -57,3 +57,9 @@ def predict_books(request):
     candidates = candidates.drop(my_rating.index)[:10]
     results = books_csv[books_csv.id.isin(candidates.index)]
     return Response(to_json(results))
+
+@api_view(['POST'])
+def list_of_books(request):
+    id_list = json.loads(request.data.get('id_list'))
+    results = books_csv[books_csv.id.isin([*map(int, id_list)])]
+    return Response(to_json(results))
