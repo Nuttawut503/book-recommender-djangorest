@@ -1,8 +1,11 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+import json
 import pandas as pd
-books_csv = pd.read_csv('/root/djangorest/api/books.csv')
+books_csv = pd.read_csv('/root/djangorest/api/books_cut.csv')
+ratings_csv = pd.read_csv('/root/djangorest/api/ratings_cut.csv')
+corrs_csv = pd.read_csv('/root/djangorest/api/corrs_cut.csv')
 
 def to_json(filtered_books, ratings_included=False):
     json = []
@@ -39,3 +42,18 @@ def more_book_info(request):
     book_id = int(request.data.get('book_id'))
     results = books_csv[books_csv.id == book_id]
     return Response(to_json(results, ratings_included=True))
+
+@api_view(['POST'])
+def predict_books(request):
+    rating_book = json.loads(request.data.get('rating_books'))
+    my_rating = pd.Series(map(float, rating_book.values()), index=map(int, rating_book.keys()))
+    candidates = pd.Series()
+    for i in my_rating.index:
+        similarities = corrs_csv[str(i)].dropna()
+        similarities = similarities.map(lambda x: x * my_rating[i])
+        candidates = candidates.append(similarities)
+    candidates = candidates.groupby(candidates.index).sum()
+    candidates.sort_values(inplace = True, ascending = False)
+    candidates = candidates.drop(my_rating.index)[:10]
+    results = books_csv[books_csv.id.isin(candidates.index)]
+    return Response(to_json(results))
