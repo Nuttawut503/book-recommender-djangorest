@@ -54,7 +54,8 @@ def predict_books(request):
         candidates = candidates.append(similarities)
     candidates = candidates.groupby(candidates.index).sum()
     candidates.sort_values(inplace = True, ascending = False)
-    candidates = candidates.drop([*filter(lambda x: x in candidates.index, my_rating.index)])[:10]
+    candidates.index += 1
+    candidates = candidates.drop(my_rating.index)[:10]
     results = books_csv[books_csv.id.isin(candidates.index)]
     return Response(to_json(results))
 
